@@ -86,6 +86,12 @@ input:focus{border-color:#64B5F6;background:#fff;box-shadow:0 0 0 4px rgba(100,1
 .rem{display:flex;align-items:flex-start;gap:10px;font-weight:500;font-size:15px;margin:-2px 0 8px;cursor:pointer;line-height:1.5}
 .rem input{width:22px;height:22px;min-height:0;flex:0 0 22px;margin:2px 0 0;padding:0;accent-color:var(--pri)}
 .rem small{color:var(--mut);font-size:13px}
+.qrbtn{margin-top:12px}
+.qrbox{background:#fff;border:2px solid var(--line);border-radius:16px;padding:14px;margin-top:10px;text-align:center}
+.qrbox img{display:block;width:100%;max-width:300px;height:auto;margin:0 auto;border-radius:10px;background:#fff}
+.qrbox .qrcode{font-family:monospace;font-size:15px;font-weight:700;color:#263238;word-break:break-all;margin-top:10px;background:var(--yel);border-radius:10px;padding:8px 10px}
+.qrbox .qrnote{font-size:13px;color:var(--mut);margin-top:8px;line-height:1.6}
+.qrbox .qrfail{color:var(--bad);font-size:14px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -540,8 +546,42 @@ function renderFound(r){
       '<span class="tag">' + esc(r.classRoom) + '</span>' +
       (sid ? '<span class="sid">รหัส ' + esc(sid) + '</span>' : '') +
       (r.emergency ? '<span class="etag">🆘 ฉุกเฉิน</span>' : '') + '</div>' +
-    '<div class="info">' + info + '</div>' + btn +
+    '<div class="info">' + info + '</div>' +
+    (r.qrToken ? '<button class="btn b-soft qrbtn" id="btnQr" onclick="toggleQr()">🔳 ดู QR ของนักเรียน</button>' +
+      '<div class="qrbox" id="qrBox" style="display:none"></div>' : '') +
+    btn +
     '<button class="btn b-gray" onclick="closeSheet()">' + (btn ? '✕ ยกเลิก' : '📷 สแกนคนถัดไป') + '</button>');
+}
+
+/* ---------- ดู QR ของนักเรียนบนหน้าจอยาม (มือถือนักเรียนไม่มีเน็ต) ---------- */
+function toggleQr(){
+  var box = document.getElementById('qrBox'), btn = document.getElementById('btnQr');
+  if (!box || !found || !found.qrToken) return;
+  if (box.style.display !== 'none') {
+    box.style.display = 'none';
+    btn.innerHTML = '🔳 ดู QR ของนักเรียน';
+    return;
+  }
+  var src = String(found.qrImage || '').replace('size=220', 'size=360');
+  box.innerHTML =
+    '<img id="qrImg" src="' + esc(src) + '" alt="QR ใบอนุญาต" onerror="qrFail()">' +
+    '<div class="qrcode">' + esc(found.qrToken) + '</div>' +
+    '<div class="qrnote">ใช้แสดงหรือตรวจรหัสเมื่อมือถือนักเรียนเปิดใบอนุญาตไม่ได้<br>ไม่ต้องสแกนซ้ำ กดปุ่มบันทึกเวลาด้านล่างได้เลย</div>';
+  box.style.display = 'block';
+  btn.innerHTML = '🔼 ซ่อน QR';
+  setTimeout(function(){ box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60);
+}
+
+function qrFail(){
+  var im = document.getElementById('qrImg');
+  if (im) im.style.display = 'none';
+  var box = document.getElementById('qrBox');
+  if (box && !box.querySelector('.qrfail')) {
+    var d = document.createElement('div');
+    d.className = 'qrfail';
+    d.innerText = '⚠️ โหลดรูป QR ไม่ได้ — ใช้รหัสด้านล่างแทนได้';
+    box.insertBefore(d, box.firstChild);
+  }
 }
 
 function doScan(type, force){
